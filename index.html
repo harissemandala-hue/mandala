@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TransitManager - Prototype (HTML seul)</title>
+<meta name="description" content="Prototype HTML de l'application TransitManager - Gestion de transport" />
+<style>
+  /* Reset léger */
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: Inter, Roboto, system-ui, Arial, sans-serif; }
+  html,body { height: 100%; background: #f6f8fb; color: #111; }
+  a { color: inherit; text-decoration: none; }
+
+  /* Top navigation */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: linear-gradient(90deg,#0D47A1,#0B3B8A); color: white;
+    gap: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; }
+  .brand img { width:36px; height:36px; border-radius:6px; object-fit:cover; }
+  .nav-icons { display:flex; gap:8px; align-items:center; }
+  .nav-icons button { background:transparent; border:0; color:white; font-size:18px; padding:8px; border-radius:8px; cursor:pointer; }
+  .nav-icons button:hover { background: rgba(255,255,255,0.08); }
+
+  /* Layout */
+  .container { max-width:1000px; margin: 14px auto; padding: 0 12px 80px; display: grid; grid-template-columns: 1fr 320px; gap:18px; }
+  @media (max-width:940px){ .container{ grid-template-columns: 1fr; padding-bottom:120px; } .right-col{ order: 2; } }
+
+  /* Left column - feed */
+  .card { background:white; border-radius:10px; box-shadow: 0 6px 18px rgba(11,36,73,0.06); padding:12px; margin-bottom:14px; overflow:hidden; }
+  .post { display:flex; gap:12px; }
+  .avatar { width:56px; height:56px; border-radius:50%; background:#ddd; overflow:hidden; flex-shrink:0; }
+  .avatar img { width:100%; height:100%; object-fit:cover; }
+  .post-body { flex:1; }
+  .post-meta { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .post-meta .name { font-weight:700; }
+  .post-media { margin-top:8px; border-radius:8px; overflow:hidden; }
+  .post-media img, .gallery img { width:100%; display:block; }
+
+  /* reactions */
+  .reactions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .reaction-btn { border:0; background:#f1f4f9; padding:6px 10px; border-radius:20px; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+  .reaction-btn.active { background: #FFF0B3; }
+
+  /* comments */
+  .comments { margin-top:10px; font-size:14px; color:#333; }
+  .comment { margin-top:8px; display:flex; gap:8px; }
+  .comment .c-body { background:#f6f8fb; padding:8px 10px; border-radius:8px; }
+
+  /* right column (sidebar) */
+  .right-col { position:sticky; top:74px; align-self:start; }
+  .section-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; color:#333; font-weight:700; }
+
+  /* gallery */
+  .gallery-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  @media (max-width:600px){ .gallery-grid{ grid-template-columns:repeat(2,1fr); } }
+
+  /* floating action buttons */
+  .fab-container { position: fixed; right: 18px; bottom: 18px; display:flex; flex-direction:column; gap:10px; z-index:80; }
+  .fab { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; background:#0D47A1; color:white; border:0; cursor:pointer; box-shadow: 0 8px 24px rgba(13,71,161,0.28); }
+  .fab.secondary { background:#FFD700; color:#0b2a4a; font-weight:700; }
+
+  /* small utilities */
+  .search { display:flex; gap:8px; align-items:center; background:white; padding:8px 10px; border-radius:10px; box-shadow: 0 6px 18px rgba(11,36,73,0.03); }
+  .search input { border:0; outline:0; width:100%; font-size:14px; }
+
+  /* menu / profile */
+  .profile-pic { width:42px; height:42px; border-radius:8px; overflow:hidden; }
+  .profile-pic img{ width:100%; height:100%; object-fit:cover; }
+
+  /* modal */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:120; }
+  .modal { width:100%; max-width:720px; background:white; border-radius:12px; padding:14px; box-shadow: 0 20px 60px rgba(2,12,40,0.45); }
+  .modal .row { display:flex; gap:8px; margin-bottom:10px; }
+  .modal input[type="text"], .modal input[type="email"], .modal input[type="number"], .modal textarea, .modal select {
+    width:100%; padding:10px; border-radius:8px; border:1px solid #e6eef9; font-size:14px;
+  }
+  .btn { display:inline-block; padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:600; }
+  .btn.primary { background:#0D47A1; color:white; }
+  .btn.ghost { background:transparent; border:1px solid #e6eef9; color:#0D47A1; }
+
+  /* donate options */
+  .donation-grid { display:flex; gap:8px; flex-wrap:wrap; }
+  .donation-amt { padding:8px 12px; border-radius:8px; background:#f4f7ff; cursor:pointer; border:1px dashed transparent; }
+  .donation-amt.selected { background:#0D47A1; color:white; border-color:rgba(255,255,255,0.12); }
+
+  /* footer small */
+  footer { text-align:center; padding:14px 8px; color:#666; font-size:13px; }
+
+  /* small badges */
+  .badge { background:#FFD700; color:#04243B; padding:4px 8px; border-radius:999px; font-weight:700; font-size:12px; }
+
+  /* dark mode toggler */
+  .dark-mode { filter: brightness(0.92) saturate(0.85); }
+
+</style>
+</head>
+<body>
+
+<!-- Top navigation -->
+<header class="topbar" role="banner">
+  <div class="brand" aria-label="Brand">
+    <img src="assets/images/02.jpg" alt="Logo TransitManager" onerror="this.style.display='none'">
+    <div>
+      <div style="font-size:16px">TransitManager</div>
+      <div style="font-size:12px; opacity:0.9">Gestion de transport</div>
+    </div>
+  </div>
+
+  <div style="flex:1; margin:0 12px;">
+    <div class="search" role="search" aria-label="Recherche">
+      <span style="font-weight:700; color:#0D47A1; padding:4px 6px; border-radius:6px; background:white;">🔎</span>
+      <input placeholder="Rechercher camions, enregistrements, clients..." aria-label="Recherche">
+    </div>
+  </div>
+
+  <nav class="nav-icons" aria-label="Navigation principale">
+    <button title="Tableau de bord" onclick="navigate('dashboard')">▦</button>
+    <button title="Enregistrements" onclick="navigate('registrations')">📋</button>
+    <button title="Clients" onclick="navigate('clients')">👥</button>
+    <button title="Sites" onclick="navigate('sites')">📍</button>
+    <button title="Camions" onclick="navigate('fleet')">🚚</button>
+    <button title="Finances" onclick="navigate('finance')">💰</button>
+    <button title="Transactions" onclick="navigate('transactions')">📊</button>
+    <button title="Vérifications" onclick="navigate('verification')">✓</button>
+    <button title="Déconnexion" onclick="__logout()" style="margin-left:auto; color:#dc3545;">⏻</button>
+  </nav>
+</header>
+
+<!-- Main container -->
+<main class="container" role="main">
+
+  <!-- Left: feed -->
+  <section id="home" class="left-col">
+
+    <!-- Publish composer -->
+    <div class="card" aria-label="Composer une publication">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div class="avatar"><img src="assets/images/05.jpg" alt="Votre photo" onerror="this.style.display='none'"></div>
+        <button class="btn ghost" style="flex:1; text-align:left;" onclick="openModal('publish')">Quoi de neuf, partagez un témoignage, photo ou vidéo ?</button>
+        <button class="btn" onclick="openModal('donate')">❤️ Faire un don</button>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn ghost" onclick="openModal('publish')">📷 Photo</button>
+        <button class="btn ghost" onclick="openModal('publish')">🎥 Vidéo</button>
+        <button class="btn ghost" onclick="openModal('publish')">✍️ Témoignage</button>
+      </div>
+    </div>
+
+    <!-- Sample posts -->
+    <article class="card post" id="post-1" aria-live="polite">
+      <div class="avatar"><img src="assets/images/01.jpg" alt="Patient Kiwala"></div>
+      <div class="post-body">
+        <div class="post-meta">
+          <div class="name">Patient Kiwala <span style="font-weight:400; color:#666; margin-left:6px; font-size:13px;">· Fondateur · 5 avr 2025</span></div>
+        </div>
+        <div class="post-text">Aujourd'hui, nous avons livré des colis alimentaires aux familles dans le besoin. Merci à tous les donateurs — chaque geste compte.</div>
+        <div class="post-media"><img src="assets/images/06.jpg" alt="Action caritative" onerror="this.style.display='none'"></div>
+
+        <div class="reactions" style="margin-top:10px;">
+          <button class="reaction-btn" onclick="react(this,'like')">👍 <span class="count">12</span></button>
+          <button class="reaction-btn" onclick="react(this,'love')">❤️ <span class="count">8</span></button>
+          <button class="reaction-btn" onclick="react(this,'wow')">😮 <span class="count">2</span></button>
+          <button class="reaction-btn" onclick="toggleComments('post-1')">💬 Commentaires (3)</button>
+          <button class="reaction-btn" onclick="sharePost('post-1')">↗️ Partager</button>
+        </div>
+
+        <div id="comments-post-1" class="comments" style="display:none;">
+          <div class="comment"><div class="avatar" style="width:36px;height:36px;"><img src="assets/images/05.jpg" onerror="this.style.display='none'"></div><div class="c-body">Merci pour ce que vous faites !</div></div>
+          <div class="comment"><div class="avatar" style="width:36px;height:36px;"></div><div class="c-body">Que Dieu vous bénisse 🙏</div></div>
+          <div style="margin-top:8px;"><input placeholder="Écrire un commentaire..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #e6eef9" /></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card post" id="post-2">
+      <div class="avatar"><img src="assets/images/04.jpg" alt="Merveil Kabila" onerror="this.style.display='none'"></div>
+      <div class="post-body">
+        <div class="post-meta"><div class="name">Merveil Kabila <span style="font-weight:400; color:#666; margin-left:6px; font-size:13px;">· Responsable Œuvres</span></div></div>
+        <div class="post-text">Upcoming: réunion des bénévoles le 20/11 — inscrivez-vous !</div>
+      </div>
+    </article>
+
+    <!-- More posts placeholder -->
+    <article class="card" style="text-align:center; color:#666;">Fin du fil — chargez plus tard (prototype HTML)</article>
+  </section>
+
+  <!-- Right: sidebar: community, gallery, events, partners -->
+  <aside class="right-col">
+
+    <div class="card">
+      <div class="section-title"><div>Communauté</div><div style="font-size:13px; color:#666">Groupes</div></div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn ghost" style="text-align:left;" onclick="openGroup('Jeunesse')">Jeunesse (public)</button>
+        <button class="btn ghost" style="text-align:left;" onclick="openGroup('Orphelins')">Orphelins (public)</button>
+        <button class="btn ghost" style="text-align:left;" onclick="openGroup('Bénévoles')">Bénévoles (public)</button>
+        <button class="btn" onclick="openModal('createGroup')">+ Créer un groupe</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><div>Galerie</div><div style="font-size:13px; color:#666">Photos & vidéos</div></div>
+      <div class="gallery-grid">
+        <div class="gallery"><img src="assets/images/07.jpg" alt="Galerie 07" onerror="this.style.display='none'"></div>
+        <div class="gallery"><img src="assets/images/08.jpg" alt="Galerie 08" onerror="this.style.display='none'"></div>
+        <div class="gallery"><img src="assets/images/09.jpg" alt="Galerie 09" onerror="this.style.display='none'"></div>
+        <div class="gallery"><img src="assets/images/10.jpg" alt="Galerie 10" onerror="this.style.display='none'"></div>
+        <div class="gallery"><img src="assets/images/11.jpg" alt="Galerie 11" onerror="this.style.display='none'"></div>
+        <div class="gallery"><img src="assets/images/12.jpg" alt="Galerie 12" onerror="this.style.display='none'"></div>
+      </div>
+      <div style="margin-top:10px; text-align:center;">
+        <button class="btn ghost" onclick="navigate('gallery')">Voir la galerie</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><div>Partenaires officiels</div></div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <img src="assets/images/02.jpg" alt="Partenaire" style="width:56px; height:56px; border-radius:8px;" onerror="this.style.display='none'">
+        <div>
+          <div style="font-weight:700">Parole Inspirée</div>
+          <div style="font-size:13px; color:#666">Francisco Ilunga</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><div>Contact & Support</div></div>
+      <div style="font-size:14px; color:#333">
+        <div>Email: <a href="mailto:devellopementfamilleroyalefami@gmail.com">devellopementfamilleroyalefami@gmail.com</a></div>
+        <div style="margin-top:6px;">WhatsApp (Assistance générale): <a href="https://wa.me/243971300107" target="_blank">+243 971 300 107</a></div>
+        <div style="margin-top:6px;">WhatsApp (Dons): <a href="https://wa.me/243993844660" target="_blank">+243 993 844 660</a></div>
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- Floating action buttons -->
+<div class="fab-container" aria-hidden="false">
+  <button class="fab" title="Publier" onclick="openModal('publish')">＋</button>
+  <button class="fab" title="Messenger" style="background:#0b9bd8" onclick="openModal('messenger')">💬</button>
+  <button class="fab secondary" title="Faire un don" onclick="openModal('donate')">❤️</button>
+  <button class="fab" title="Événements" onclick="openModal('events')">📅</button>
+</div>
+
+<!-- Modals (hidden by default) -->
+<div id="modal-root" style="display:none;"></div>
+
+<!-- Minimal footer -->
+<footer>
+  © TransitManager - Gestion de transport — Prototype HTML • Couleurs: Bleu #0D47A1, Or #FFD700 • <span style="opacity:0.7">Document de spécification: validé le 05/04/2025</span>
+</footer>
+
+<script>
+  /* Simple navigation between sections inside this single-page prototype */
+  function navigate(id){
+    // hide all main sections (home, community, gallery, notifications, profile)
+    const sections = ['home','community','gallery','notifications','profile'];
+    sections.forEach(s => {
+      const el = document.getElementById(s);
+      if(el) el.style.display = (s === id ? 'block' : 'none');
+    });
+    // if target doesn't exist, fallback to home
+    if(!document.getElementById(id)) {
+      if(id === 'community') openModal('community');
+      if(id === 'gallery') openModal('gallery');
+      if(id === 'notifications') openModal('notifications');
+      if(id === 'profile') openModal('profile');
+    }
+    // scroll top
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  // initialize: hide non-home sections (this prototype has home visible only)
+  ['community','gallery','notifications','profile'].forEach(s=>{
+    if(!document.getElementById(s)) {
+      const wrapper = document.createElement('section');
+      wrapper.id = s;
+      wrapper.style.display = 'none';
+      wrapper.className = 'left-col';
+      wrapper.innerHTML = '<div class="card"><h3>'+s.charAt(0).toUpperCase()+s.slice(1)+'</h3><p style="color:#666; margin-top:8px">Section en prototype: app single-file (HTML). Cliquez sur les boutons pour simuler.</p></div>';
+      document.querySelector('main').prepend(wrapper);
+    } else {
+      document.getElementById(s).style.display = 'none';
+    }
+  });
+
+  // Modal helper
+  function openModal(name){
+    const root = document.getElementById('modal-root');
+    root.style.display = 'block';
+    root.innerHTML = ''; // clear
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.onclick = (e)=>{ if(e.target === backdrop) closeModal(); };
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+
+    if(name === 'publish'){
+      modal.innerHTML = '<h3>Nouvelle publication</h3>'
+        + '<div class="row"><input type="text" id="pub-title" placeholder="Titre (optionnel)"></div>'
+        + '<div class="row"><textarea id="pub-text" rows="4" placeholder="Écrivez votre texte, témoignage, annonce..."></textarea></div>'
+        + '<div class="row"><input type="file" id="pub-media" accept="image/*,video/*"></div>'
+        + '<div style="display:flex; gap:8px; justify-content:flex-end;"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="publish()">Publier</button></div>';
+    } else if(name === 'donate'){
+      modal.innerHTML = '<h3>Faire un don</h3>'
+        + '<p style="color:#666">Choisissez un montant (ex: Mobile Money, Carte bancaire, PayPal) — ceci est un mock (prototype).</p>'
+        + '<div class="donation-grid" style="margin:10px 0">'
+        + '<button class="donation-amt" onclick="selectAmt(this)">10€</button>'
+        + '<button class="donation-amt" onclick="selectAmt(this)">25€</button>'
+        + '<button class="donation-amt" onclick="selectAmt(this)">50€</button>'
+        + '<button class="donation-amt" onclick="selectAmt(this)">100€</button>'
+        + '<button class="donation-amt" onclick="selectAmt(this)">Autre</button>'
+        + '</div>'
+        + '<div class="row" id="other-amt-row" style="display:none"><input type="number" id="other-amt" placeholder="Montant libre (EUR)"></div>'
+        + '<div class="row"><select id="pay-method"><option>Mobile Money</option><option>Carte bancaire</option><option>PayPal</option></select></div>'
+        + '<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="donate()">Payer</button></div>';
+    } else if(name === 'messenger'){
+      modal.innerHTML = '<h3>Messagerie (prototype)</h3>'
+        + '<p style="color:#666">Chat individuel et groupe — en vrai: WebSocket / RTC (V2 pour appels audio/vidéo).</p>'
+        + '<div class="row"><input type="text" placeholder="Rechercher ou démarrer un chat..."></div>'
+        + '<div style="margin-top:8px;"><button class="btn ghost" onclick="startChat()">Démarrer un chat test</button></div>'
+        + '<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;"><button class="btn" onclick="closeModal()">Fermer</button></div>';
+    } else if(name === 'createGroup'){
+      modal.innerHTML = '<h3>Créer un groupe</h3>'
+        + '<div class="row"><input type="text" id="group-name" placeholder="Nom du groupe"></div>'
+        + '<div class="row"><select id="group-visibility"><option>Public</option><option>Privé</option></select></div>'
+        + '<div style="display:flex; justify-content:flex-end; gap:8px;"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="createGroup()">Créer</button></div>';
+    } else if(name === 'events'){
+      modal.innerHTML = '<h3>Événements DFR</h3><p style="color:#666">Calendrier & inscriptions — prototype.</p><div style="display:flex; gap:8px; margin-top:8px;"><button class="btn ghost" onclick="closeModal()">Fermer</button></div>';
+    } else if(name === 'gallery'){
+      modal.innerHTML = '<h3>Galerie complète</h3><p style="color:#666">Affichage de toutes les images stockées dans <code>assets/images/</code>.</p><div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">'
+        + '<img src="assets/images/01.jpg" style="width:120px; height:80px; object-fit:cover;" onerror="this.style.display=\'none\'">'
+        + '<img src="assets/images/02.jpg" style="width:120px; height:80px; object-fit:cover;" onerror="this.style.display=\'none\'">'
+        + '<img src="assets/images/03.png" style="width:120px; height:80px; object-fit:cover;" onerror="this.style.display=\'none\'">'
+        + '<img src="assets/images/04.jpg" style="width:120px; height:80px; object-fit:cover;" onerror="this.style.display=\'none\'">'
+        + '</div><div style="display:flex; justify-content:flex-end; margin-top:8px;"><button class="btn" onclick="closeModal()">Fermer</button></div>';
+    } else if(name === 'notifications'){
+      modal.innerHTML = '<h3>Notifications</h3><ul style="margin-top:8px; color:#333"><li>💚 Nouveau don reçu — 20€</li><li>🔔 Nouvelle demande d\'adhésion au groupe "Jeunesse"</li><li>🗓️ Événement: Réunion bénévoles — 20/11</li></ul><div style="display:flex; justify-content:flex-end; margin-top:8px;"><button class="btn" onclick="closeModal()">Fermer</button></div>';
+    } else if(name === 'profile'){
+      modal.innerHTML = '<h3>Profil</h3>'
+        + '<div style="display:flex; gap:10px; align-items:center;"><div class="avatar" style="width:72px;height:72px;"><img src="assets/images/05.jpg" onerror="this.style.display=\'none\'"></div>'
+        + '<div><div style="font-weight:800">Patient Kiwala</div><div style="color:#666">Fondateur DFR</div></div></div>'
+        + '<div style="margin-top:10px;"><button class="btn ghost" onclick="closeModal()">Éditer profil</button> <button class="btn" onclick="closeModal()">Fermer</button></div>';
+    } else if(name === 'community'){
+      modal.innerHTML = '<h3>Communauté</h3><p style="color:#666">Groupes publics et privés — gestion des membres & rôles.</p><div style="display:flex; justify-content:flex-end; margin-top:8px;"><button class="btn" onclick="closeModal()">Fermer</button></div>';
+    } else {
+      modal.innerHTML = '<h3>Fenêtre: '+name+'</h3><div style="display:flex; justify-content:flex-end; margin-top:8px;"><button class="btn" onclick="closeModal()">Fermer</button></div>';
+    }
+
+    backdrop.appendChild(modal);
+    root.appendChild(backdrop);
+  }
+
+  function closeModal(){
+    const root = document.getElementById('modal-root');
+    root.style.display = 'none';
+    root.innerHTML = '';
+  }
+
+  // publication persistante via le backend SQLite
+  async function publish(){
+    const title = document.getElementById('pub-title') ? document.getElementById('pub-title').value : '';
+    const txt = document.getElementById('pub-text') ? document.getElementById('pub-text').value : '';
+    if(!txt.trim()){ alert('Écrivez quelque chose avant de publier.'); return; }
+    try {
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({title:title, text:txt, author:'Sage Kiwala'})
+      });
+      const result = await response.json();
+      if(!response.ok) throw new Error(result.error || 'Erreur serveur');
+      closeModal();
+      alert('Publication enregistrée dans la base de données.');
+      location.reload();
+    } catch(error) {
+      alert('Impossible d’enregistrer la publication : ' + error.message);
+    }
+  }
+
+  // donation actions (mock)
+  function selectAmt(btn){
+    document.querySelectorAll('.donation-amt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    if(btn.textContent.trim() === 'Autre') {
+      document.getElementById('other-amt-row').style.display = 'block';
+    } else {
+      document.getElementById('other-amt-row').style.display = 'none';
+    }
+  }
+  function donate(){
+    let amountEl = document.querySelector('.donation-amt.selected');
+    let amt = amountEl ? amountEl.textContent.trim() : null;
+    if(amt === 'Autre'){
+      const other = document.getElementById('other-amt').value;
+      if(!other || Number(other)<=0){ alert('Saisissez un montant valide.'); return; }
+      amt = other + '€';
+    }
+    if(!amt) { alert('Sélectionnez un montant.'); return; }
+    const method = document.getElementById('pay-method').value;
+    closeModal();
+    // in real app: redirect to payment gateway (Stripe/PayPal/MobileMoney)
+    alert('Donation simulée: ' + amt + ' via ' + method + ' (prototype). Un reçu PDF & email seraient générés en production.');
+  }
+
+  // simple reactions toggle
+  function react(btn,type){
+    btn.classList.toggle('active');
+    const span = btn.querySelector('.count');
+    if(span){
+      let n = parseInt(span.textContent || '0',10);
+      if(isNaN(n)) n = 0;
+      if(btn.classList.contains('active')) n+=1; else n = Math.max(0, n-1);
+      span.textContent = n;
+    }
+  }
+
+  // comments toggle
+  function toggleComments(id){
+    const el = document.getElementById('comments-'+id);
+    if(el) el.style.display = (el.style.display === 'none' ? 'block' : 'none');
+  }
+
+  // share simulation
+  function sharePost(id){
+    alert('Partage simulé: ' + id + ' — choisissez "Public" ou "Privé" dans l\'app réelle.');
+  }
+
+  // group create simulation
+  function createGroup(){
+    const name = document.getElementById('group-name').value || 'Nouveau groupe';
+    closeModal();
+    alert('Groupe créé (prototype): ' + name);
+  }
+
+  function startChat(){
+    closeModal();
+    alert('Chat démarré (prototype). En production → chat temps réel (WebSocket).');
+  }
+
+  function openGroup(name){
+    alert('Ouverture du groupe: ' + name + ' (prototype).');
+  }
+
+  // accessibility: close modals on escape
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeModal();
+  });
+
+  // simulate notification count update
+  setTimeout(()=> {
+    const n = document.getElementById('notif-count');
+    if(n) n.textContent = '4';
+  }, 5000);
+
+  /* NOTES:
+    - Toutes les images doivent être placées dans assets/images/ selon votre règle de nommage (01.jpg,02.jpg,03.png,...).
+    - Ce prototype est une interface statique + comportements JS simulés. En production:
+      • Auth: Firebase Auth / JWT
+      • Backend: Node/NestJS ou Laravel
+      • Storage: S3 / Firebase Storage
+      • Paiements: Stripe / PayPal / Mobile Money providers
+      • Messagerie: WebSocket / WebRTC
+  */
+</script>
+<script>
+(() => {
+  const K='transitPro_v1';
+  const seed={
+    users:[{name:'Sage Kiwala',role:'admin',login:'admin',password:'Admin@2026'},{name:'Marie Finance',role:'secondary',login:'finance',password:'Finance@2026'},{name:'Patrick Employé',role:'employee',login:'employe',password:'Employe@2026'}],
+    clients:[{id:1,name:'Congo Trade',phone:'+243 810 000 001'},{id:2,name:'Afric Agro',phone:'+243 810 000 002'}],
+    sites:[{id:1,name:'Site Kintambo',location:'Kinshasa'},{id:2,name:'Site Matadi',location:'Matadi'}],
+    trucks:[{id:1,plate:'KIN-4821-C',model:'Mercedes Actros',driver:'Joseph Mwema'},{id:2,plate:'MAT-1072-Z',model:'Volvo FH16',driver:'David Kalala'}],
+    registrations:[
+      {id:1,date:'2026-11-19 08:35',employee:'Patrick Employé',site:'Site Kintambo',client:'Congo Trade',plate:'KIN-4821-C',driver:'Joseph Mwema',packaging:'Conteneur',status:'Validé'},
+      {id:2,date:'2026-11-18 14:10',employee:'Patrick Employé',site:'Site Matadi',client:'Afric Agro',plate:'MAT-1072-Z',driver:'David Kalala',packaging:'Grumes',status:'En attente'}
+    ],
+    transactions:[
+      {id:1,date:'2026-11-19',plate:'KIN-4821-C',type:'Revenu',amount:1250,description:'Transport marchandises',status:'Validé'},
+      {id:2,date:'2026-11-19',plate:'KIN-4821-C',type:'Dépense',amount:320,description:'Carburant',status:'Validé'},
+      {id:3,date:'2026-11-18',plate:'MAT-1072-Z',type:'Revenu',amount:980,description:'Transport marchandises',status:'En attente'}
+    ]
+  };
+  let db=JSON.parse(localStorage.getItem(K)||'null')||seed;
+  let session=JSON.parse(sessionStorage.getItem('transitSession')||'null');
+  const $=(q,r=document)=>r.querySelector(q);
+  const $$=(q,r=document)=>[...r.querySelectorAll(q)];
+  const save=()=>localStorage.setItem(K, JSON.stringify(db));
+  const money=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'USD'}).format(n||0);
+  const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+
+  const css=`
+  :root{--navy:#10233f;--blue:#1769e0;--cyan:#22b8cf;--bg:#f3f6fb;--card:#fff;--text:#172033;--muted:#718096;--line:#e7edf5;--green:#18a66a;--orange:#f59e0b;--red:#dc3545}
+  *{box-sizing:border-box} body{margin:0!important;background:var(--bg)!important;color:var(--text)!important;font-family:Inter,Segoe UI,Arial,sans-serif!important}.topbar,.container,.fab-container,footer,.modal-backdrop{display:none!important}
+  button,input,select,textarea{font:inherit}button{cursor:pointer}.app{min-height:100vh}.login{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 15% 15%,#e1eeff 0,transparent 32%),linear-gradient(135deg,#eef4fc,#f8fafc)}
+  .login-card{width:min(980px,100%);background:white;border-radius:24px;box-shadow:0 24px 70px rgba(16,35,63,.14);overflow:hidden;display:grid;grid-template-columns:42% 58%}.login-art{padding:48px;background:linear-gradient(145deg,#10233f,#1b4c82);color:white}.login-art h1{font-size:38px;margin:12px 0}.login-art p{line-height:1.7;color:#cbdcf1}.brand-mark{width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,#28c5d8,#1769e0);display:grid;place-items:center;font-size:28px}.login-form{padding:48px}.login-form h2{margin:0 0 8px;font-size:28px}.login-form>p{color:var(--muted);margin:0 0 28px}.roles{display:grid;gap:12px}.role{border:1px solid var(--line);border-radius:14px;padding:16px;text-align:left;background:white;display:flex;gap:14px;align-items:center;transition:.2s}.role:hover{border-color:#91baf7;transform:translateY(-2px);box-shadow:0 10px 24px rgba(23,105,224,.09)}.role-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#edf4ff;font-size:20px}.role strong{display:block}.role small{color:var(--muted)}
+  .shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}.sidebar{background:var(--navy);color:white;padding:22px 16px;position:sticky;top:0;height:100vh}.side-brand{display:flex;align-items:center;gap:12px;padding:0 8px 24px}.side-brand .brand-mark{width:42px;height:42px;border-radius:12px}.side-brand strong{display:block}.side-brand small{color:#9eb1cc}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#bed0e8;border-radius:10px;padding:12px 13px;text-align:left;display:flex;align-items:center;gap:11px}.nav button:hover,.nav button.active{background:rgba(255,255,255,.1);color:white}.nav button span{width:20px;text-align:center}.profile-box{position:absolute;bottom:18px;left:16px;right:16px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;display:flex;align-items:center;gap:10px}.avatar{width:38px;height:38px;border-radius:50%;background:#28b7ca;display:grid;place-items:center;font-weight:700}.profile-box div{min-width:0}.profile-box strong,.profile-box small{display:block}.profile-box small{color:#9eb1cc}.logout{margin-left:auto;border:0;background:transparent;color:#9eb1cc;font-size:17px}
+  .main{min-width:0}.top{height:74px;background:white;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px}.top h2{margin:0;font-size:21px}.top p{margin:3px 0 0;color:var(--muted);font-size:13px}.top-actions{display:flex;gap:10px}.icon-btn,.primary{border-radius:10px;padding:10px 13px;border:1px solid var(--line);background:white}.primary{border:0;background:var(--blue)!important;color:white!important;font-weight:700}.content{padding:24px 28px 40px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:17px}.stat-top{display:flex;justify-content:space-between;align-items:center}.stat-icon{width:39px;height:39px;border-radius:10px;background:#edf4ff;display:grid;place-items:center}.stat h3{font-size:25px;margin:12px 0 4px}.stat p{margin:0;color:var(--muted);font-size:13px}.trend{color:var(--green);font-size:12px}
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:18px}.panel{background:white;border:1px solid var(--line);border-radius:14px;overflow:hidden}.panel-head{height:58px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.panel-head h3{margin:0;font-size:15px}.panel-head button{border:0;background:none;color:var(--blue);font-weight:700}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--muted);font-weight:600;background:#fafbfd;padding:11px 14px;border-bottom:1px solid var(--line)}td{padding:12px 14px;border-bottom:1px solid var(--line)}tr:last-child td{border-bottom:0}.badge{padding:5px 8px;border-radius:999px;font-size:11px;font-weight:700}.badge.green{background:#daf5e9;color:#148355}.badge.orange{background:#fff1cf;color:#9b6500}.badge.blue{background:#e2efff;color:#175ba8}.badge.red{background:#ffe1e4;color:#b52a3a}
+  .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700;color:#536176}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;background:white;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#78aaf0;box-shadow:0 0 0 3px #edf4ff}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini-card{border:1px solid var(--line);border-radius:12px;padding:14px}.mini-card strong{display:block;margin-bottom:5px}.mini-card span{color:var(--muted);font-size:12px}
+  .bar-chart{height:210px;padding:24px 18px 16px;display:flex;align-items:flex-end;gap:13px}.bar-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;text-align:center}.bar{background:linear-gradient(180deg,#2aaee7,#1769e0);border-radius:7px 7px 2px 2px;min-height:8px}.bar-col small{margin-top:8px;color:var(--muted)}.finance-row{display:flex;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--line)}.finance-row:last-child{border:0}.finance-row span:first-child{color:var(--muted)}
+  .search-row{display:flex;gap:10px;margin-bottom:12px}.search-row input{flex:1}.actions button{border:0;background:transparent;color:var(--blue);font-weight:700}.toast{position:fixed;right:24px;bottom:24px;background:#10233f;color:white;padding:12px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:20}
+  @media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.login-card{grid-template-columns:1fr}.login-art{display:none}.shell{grid-template-columns:200px 1fr}}@media(max-width:700px){.shell{display:block}.sidebar{position:relative;width:100%;height:auto}.nav{grid-template-columns:repeat(2,1fr)}.profile-box{position:static;margin-top:14px}.main{min-height:70vh}.top{padding:0 16px}.content{padding:18px 16px}.cards{grid-template-columns:1fr}.mini-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.login-form{padding:28px 22px}}
+  `;
+
+  function loginView(){
+    document.body.innerHTML=`<style>${css}</style><div class="app login"><div class="login-card"><aside class="login-art"><div class="brand-mark">▰</div><h1>Transit<span style="color:#55d0df">Manager</span></h1><p>Gestion centralisée des camions, enregistrements, sites, clients et opérations financières.</p></aside><main class="login-form"><h2>Connexion sécurisée</h2><p>Utilisez vos identifiants personnels</p><form id="loginForm" class="form-grid" style="grid-template-columns:1fr"><div class="field"><label>Nom d'utilisateur</label><input id="loginUser" autocomplete="username" required autofocus></div><div class="field"><label>Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div><div class="form-actions" style="justify-content:flex-start"><button class="primary" type="submit" style="width:100%;padding:13px">Se connecter</button></div></form></main></div></div>`;
+    $('#loginForm').onsubmit=e=>{e.preventDefault();window.__login($('#loginUser').value.trim(),$('#loginPassword').value)};
+  }
+  window.__login=(login,password)=>{
+    const u=db.users.find(x=>String(x.login||'').toLowerCase()===String(login||'').toLowerCase()&&String(x.password||'')===String(password||''));
+    if(!u){toast('Identifiant ou mot de passe incorrect');return}
+    session=u; sessionStorage.setItem('transitSession',JSON.stringify(session)); render();
+  };
+
+  window.__logout=()=>{session=null;sessionStorage.removeItem('transitSession');render()};
+  function shell(page='dashboard'){
+    const role=session.role;
+    const items=role==='employee' ? [['dashboard','▦','Tableau de bord'],['register','＋','Nouvel enregistrement'],['registrations','≡','Mes enregistrements']] : role==='secondary' ? [['dashboard','▦','Tableau de bord'],['verification','✓','Vérifications'],['finance','¤','Finances'],['transactions','≡','Transactions']] : [['dashboard','▦','Tableau de bord'],['registrations','≡','Enregistrements'],['clients','♙','Clients'],['sites','⌖','Sites'],['fleet','▰','Camions & chauffeurs'],['finance','¤','Finances'],['accounts','♟','Comptes utilisateurs']];
+    document.body.innerHTML=`<style>${css}</style><div class="app shell"><aside class="sidebar"><div class="side-brand"><div class="brand-mark">▰</div><div><strong>TransitManager</strong><small>Gestion de transport</small></div></div><nav class="nav">${items.map(i=>`<button data-page="${i[0]}" class="${page===i[0]?'active':''}"><span>${i[1]}</span>${i[2]}</button>`).join('')}</nav><div class="profile-box"><div class="avatar">${esc(session.name[0])}</div><div><strong>${esc(session.name)}</strong><small>${role==='admin'?'Administrateur':role==='secondary'?'Administrateur secondaire':'Employé'}</small></div><button class="logout" onclick="window.__logout()" title="Déconnexion">⏻</button></div></aside><main class="main"><header class="top"><div><h2 id="pageTitle"></h2><p id="pageSub"></p></header><section class="content" id="content"></section></main></div>`;
+    $$('.nav button').forEach(b=>b.onclick=()=>navigate(b.dataset.page));
+  }
+
+  function navigate(page){shell(page); const map={dashboard:['Tableau de bord','Vue générale de vos activités'],register:['Nouvel enregistrement','Enregistrer un camion entré sur site'],registrations:['Enregistrements','Historique des passages'],clients:['Gestion des clients','Ajouter et consulter les clients'],sites:['Gestion des sites','Ajouter et consulter les sites'],fleet:['Camions & chauffeurs','Gérer la flotte et les conducteurs'],verification:['Vérifications','Valider les enregistrements et opérations'],finance:['Rapport financier','Revenus, dépenses et soldes'],transactions:['Transactions','Saisir les opérations financières'],accounts:['Comptes utilisateurs','Créer et consulter les comptes']};const m=map[page]||map.dashboard;$('#pageTitle').textContent=m[0];$('#pageSub').textContent=m[1];
+    if(page==='dashboard')renderDashboard();else if(page==='register')renderRegister();else if(page==='registrations')renderRegistrations();else if(page==='clients')renderClients();else if(page==='sites')renderSites();else if(page==='fleet')renderFleet();else if(page==='finance')renderFinance();else if(page==='verification')renderVerification();else if(page==='transactions')renderTransactions();else if(page==='accounts')renderAccounts();
+  }
+
+  function renderAccounts(){
+    if(session.role!=='admin'){navigate('dashboard');return}
+    $('#content').innerHTML=`<div class="grid"><div class="panel"><div class="panel-head"><h3>${db.users.length} compte(s)</h3></div><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th></tr></thead><tbody>${db.users.map(u=>`<tr><td><strong>${esc(u.name)}</strong></td><td>${esc(u.login)}</td><td><span class="badge ${u.role==='admin'?'blue':u.role==='secondary'?'orange':'green'}">${u.role==='admin'?'Administrateur':u.role==='secondary'?'Administrateur secondaire':'Employé'}</span></td></tr>`).join('')}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Créer un compte</h3></div><div style="padding:16px"><form id="accountForm"><div class="form-grid"><div class="field full"><label>Nom complet</label><input id="an" required></div><div class="field full"><label>Nom d'utilisateur</label><input id="al" required></div><div class="field full"><label>Mot de passe</label><input id="ap" type="password" minlength="8" required></div><div class="field full"><label>Rôle</label><select id="ar"><option value="employee">Employé</option><option value="secondary">Administrateur secondaire</option><option value="admin">Administrateur</option></select></div></div><div class="form-actions"><button class="primary" type="submit">Créer le compte</button></div></form></div></div></div>`;
+    $('#accountForm').onsubmit=e=>{e.preventDefault();const login=$('#al').value.trim().toLowerCase();if(db.users.some(u=>String(u.login).toLowerCase()===login)){toast('Cet identifiant existe déjà');return}db.users.push({name:$('#an').value.trim(),login,password:$('#ap').value,role:$('#ar').value});save();toast('Compte créé');navigate('accounts')};
+  }
+
+  function renderRegister(){
+    $('#content').innerHTML=`<div class="panel"><div class="panel-head"><h3>Informations du camion</h3></div><div style="padding:18px"><form id="registerForm"><div class="form-grid"><div class="field"><label>Immatriculation</label><select id="plateSelect" required><option value="">Sélectionner une plaque</option>${db.trucks.map(t=>`<option value="${esc(t.plate)}">${esc(t.plate)}</option>`).join('')}</select></div><div class="field"><label>Chauffeur</label><input id="driverField" readonly placeholder="Sera rempli automatiquement"></div><div class="field"><label>Site d'entrée</label><select id="siteField" required>${db.sites.map(s=>`<option>${esc(s.name)}</option>`).join('')}</select></div><div class="field"><label>Client de la marchandise</label><select id="clientField" required>${db.clients.map(c=>`<option>${esc(c.name)}</option>`).join('')}</select></div><div class="field full"><label>Conditionnement</label><select id="packField"><option>Conteneur</option><option>Grumes</option><option>Ciment en sac</option><option>Produits alimentaires</option><option>Marchandises générales</option><option>Autre</option></select></div></div><div class="form-actions"><button type="button" class="icon-btn" onclick="navigate('dashboard')">Annuler</button><button type="submit" class="primary">Enregistrer l'entrée</button></div></form></div></div>`;
+    $('#plateSelect').onchange=e=>{const t=db.trucks.find(x=>x.plate===e.target.value);$('#driverField').value=t?t.driver:''};
+    $('#registerForm').onsubmit=e=>{e.preventDefault();const plate=$('#plateSelect').value;if(!plate)return toast('Sélectionnez une plaque');db.registrations.push({id:Date.now(),date:new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}),employee:session.name,site:$('#siteField').value,client:$('#clientField').value,plate,driver:$('#driverField').value,packaging:$('#packField').value,status:'En attente'});save();toast('Enregistrement ajouté');navigate('registrations')};
+  }
+
+  function renderRegistrations(){const rows=session.role==='employee'?db.registrations.filter(r=>r.employee===session.name):db.registrations;$('#content').innerHTML=`<div class="panel"><div class="panel-head"><h3>${rows.length} enregistrement(s)</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Employé</th><th>Site</th><th>Client</th><th>Plaque</th><th>Chauffeur</th><th>Conditionnement</th><th>Statut</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.employee)}</td><td>${esc(r.site)}</td><td>${esc(r.client)}</td><td><strong>${esc(r.plate)}</strong></td><td>${esc(r.driver)}</td><td>${esc(r.packaging)}</td><td><span class="badge ${r.status==='Validé'?'green':'orange'}">${esc(r.status)}</span></td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--muted)">Aucun enregistrement</td></tr>'}</tbody></table></div></div>`}
+
+  function renderClients(){
+    $('#content').innerHTML=`<div class="grid"><div class="panel"><div class="panel-head"><h3>Clients</h3></div><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Téléphone</th></tr></thead><tbody>${db.clients.map(c=>`<tr><td><strong>${esc(c.name)}</strong></td><td>${esc(c.phone)}</td></tr>`).join('')}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Nouveau client</h3></div><div style="padding:16px"><form id="clientForm"><div class="form-grid"><div class="field full"><label>Nom du client</label><input id="cn" required></div><div class="field full"><label>Téléphone</label><input id="cp" required></div></div><div class="form-actions"><button class="primary" type="submit">Ajouter</button></div></form></div></div></div>`;
+    $('#clientForm').onsubmit=e=>{e.preventDefault();db.clients.push({id:Date.now(),name:$('#cn').value,phone:$('#cp').value});save();toast('Client ajouté');renderClients()};
+  }
+  function renderSites(){
+    $('#content').innerHTML=`<div class="grid"><div class="panel"><div class="panel-head"><h3>Sites</h3></div><div class="table-wrap"><table><thead><tr><th>Nom du site</th><th>Localisation</th></tr></thead><tbody>${db.sites.map(s=>`<tr><td><strong>${esc(s.name)}</strong></td><td>${esc(s.location)}</td></tr>`).join('')}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Nouveau site</h3></div><div style="padding:16px"><form id="siteForm"><div class="form-grid"><div class="field full"><label>Nom du site</label><input id="sn" required></div><div class="field full"><label>Localisation</label><input id="sl" required></div></div><div class="form-actions"><button class="primary" type="submit">Ajouter</button></div></form></div></div></div>`;
+    $('#siteForm').onsubmit=e=>{e.preventDefault();db.sites.push({id:Date.now(),name:$('#sn').value,location:$('#sl').value});save();toast('Site ajouté');renderSites()};
+  }
+  function renderFleet(){
+    $('#content').innerHTML=`<div class="grid"><div class="panel"><div class="panel-head"><h3>Flotte des camions</h3></div><div class="table-wrap"><table><thead><tr><th>Plaque</th><th>Modèle</th><th>Chauffeur</th></tr></thead><tbody>${db.trucks.map(t=>`<tr><td><strong>${esc(t.plate)}</strong></td><td>${esc(t.model)}</td><td>${esc(t.driver)}</td></tr>`).join('')}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Ajouter un camion</h3></div><div style="padding:16px"><form id="truckForm"><div class="form-grid"><div class="field full"><label>Numéro de plaque</label><input id="tp" required></div><div class="field full"><label>Modèle</label><input id="tm" required></div><div class="field full"><label>Nom du chauffeur</label><input id="td" required></div></div><div class="form-actions"><button class="primary" type="submit">Ajouter</button></div></form></div></div></div>`;
+    $('#truckForm').onsubmit=e=>{e.preventDefault();db.trucks.push({id:Date.now(),plate:$('#tp').value.toUpperCase(),model:$('#tm').value,driver:$('#td').value});save();toast('Camion ajouté');renderFleet()};
+  }
+
+  function renderFinance(){const tx=db.transactions,rev=tx.filter(t=>t.type==='Revenu').reduce((a,t)=>a+t.amount,0),exp=tx.filter(t=>t.type==='Dépense').reduce((a,t)=>a+t.amount,0);$('#content').innerHTML=`<div class="cards"><div class="stat"><h3>${money(rev)}</h3><p>Total des revenus</p></div><div class="stat"><h3>${money(exp)}</h3><p>Total des dépenses</p></div><div class="stat"><h3>${money(rev-exp)}</h3><p>Solde net</p></div><div class="stat"><h3>${tx.filter(t=>t.status==='En attente').length}</h3><p>À vérifier</p></div></div><div class="panel"><div class="panel-head"><h3>Toutes les opérations</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Plaque</th><th>Type</th><th>Description</th><th>Montant</th><th>Statut</th></tr></thead><tbody>${tx.map(t=>`<tr><td>${esc(t.date)}</td><td><strong>${esc(t.plate)}</strong></td><td>${esc(t.type)}</td><td>${esc(t.description)}</td><td><strong style="color:${t.type==='Revenu'?'var(--green)':'var(--red)'}">${t.type==='Revenu'?'+':'-'} ${money(t.amount)}</strong></td><td><span class="badge ${t.status==='Validé'?'green':'orange'}">${esc(t.status)}</span></td></tr>`).join('')}</tbody></table></div></div>`}
+
+  function renderTransactions(){
+    $('#content').innerHTML=`<div class="grid"><div class="panel"><div class="panel-head"><h3>Dernières transactions</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Plaque</th><th>Type</th><th>Montant</th><th>Statut</th></tr></thead><tbody>${db.transactions.map(t=>`<tr><td>${esc(t.date)}</td><td>${esc(t.plate)}</td><td>${esc(t.type)}</td><td>${money(t.amount)}</td><td><span class="badge ${t.status==='Validé'?'green':'orange'}">${esc(t.status)}</span></td></tr>`).join('')}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Saisir une opération</h3></div><div style="padding:16px"><form id="txForm"><div class="form-grid"><div class="field"><label>Type</label><select id="tt"><option>Revenu</option><option>Dépense</option></select></div><div class="field"><label>Camion</label><select id="tp2">${db.trucks.map(t=>`<option>${esc(t.plate)}</option>`).join('')}</select></div><div class="field"><label>Date</label><input id="td2" type="date" value="${new Date().toISOString().slice(0,10)}" required></div><div class="field"><label>Montant</label><input id="ta" type="number" min="1" step="0.01" required></div><div class="field full"><label>Description</label><input id="txd" required></div></div><div class="form-actions"><button class="primary" type="submit">Ajouter</button></div></form></div></div></div>`;
+    $('#txForm').onsubmit=e=>{e.preventDefault();db.transactions.unshift({id:Date.now(),date:$('#td2').value,plate:$('#tp2').value,type:$('#tt').value,amount:Number($('#ta').value),description:$('#txd').value,status:'En attente'});save();toast('Transaction soumise');renderTransactions()};
+  }
+  function renderVerification(){
+    const pendingRegs=db.registrations.filter(r=>r.status==='En attente'),pendingTx=db.transactions.filter(t=>t.status==='En attente');$('#content').innerHTML=`<div class="grid"><div class="panel"><div class="panel-head"><h3>Enregistrements à vérifier (${pendingRegs.length})</h3></div><div class="table-wrap"><table><thead><tr><th>Employé</th><th>Plaque</th><th>Client</th><th></th></tr></thead><tbody>${pendingRegs.map(r=>`<tr><td>${esc(r.employee)}</td><td><strong>${esc(r.plate)}</strong></td><td>${esc(r.client)}</td><td class="actions"><button onclick="validateReg(${r.id})">Valider</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted)">Aucun élément</td></tr>'}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Transactions à vérifier (${pendingTx.length})</h3></div><div class="table-wrap"><table><thead><tr><th>Plaque</th><th>Type</th><th>Montant</th><th></th></tr></thead><tbody>${pendingTx.map(t=>`<tr><td><strong>${esc(t.plate)}</strong></td><td>${esc(t.type)}</td><td>${money(t.amount)}</td><td class="actions"><button onclick="validateTx(${t.id})">Valider</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted)">Aucun élément</td></tr>'}</tbody></table></div></div></div>`;
+  }
+  window.validateReg=id=>{const r=db.registrations.find(x=>x.id===id);if(r)r.status='Validé';save();toast('Enregistrement validé');renderVerification()};
+  window.validateTx=id=>{const t=db.transactions.find(x=>x.id===id);if(t)t.status='Validé';save();toast('Transaction validée');renderVerification()};
+
+  function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2200)}
+  window.__toast=toast;
+  function render(){if(!session)loginView();else navigate('dashboard')}
+  render();
+})();
+</script>
+</body>
+</html>
